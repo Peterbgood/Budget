@@ -7,272 +7,203 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
-  <style>
-    .chart-container {
-      max-width: 100%;
-      margin: 0 auto;
-      padding: 16px;
-    }
-    canvas {
-      width: 100% !important;
-      height: 400px !important;
-    }
-    @media (max-width: 640px) {
-      .chart-container {
-        padding: 8px;
-      }
-      canvas {
-        height: 300px !important;
-      }
-      input, label, button {
-        font-size: 0.85rem;
-      }
-      h2 {
-        font-size: 1.1rem;
-      }
-    }
-  </style>
 </head>
-<body class="bg-gray-100">
-  <div class="container mx-auto px-4 py-6 sm:py-8 max-w-4xl">
-    <h1 class="text-2xl sm:text-3xl font-bold text-center text-gray-800 mb-6">
-      Knoxville Budget Overview
-    </h1>
-
-    <div class="mb-6 bg-white shadow-lg rounded-lg p-6">
-      <h2 class="text-xl font-semibold text-gray-800 mb-4">Income</h2>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<body class="bg-gray-100 font-sans">
+  <div class="container mx-auto px-4 py-6 max-w-4xl">
+    
+    <div class="flex justify-between items-center mb-6">
         <div>
-          <label for="yourIncome" class="block text-sm font-medium text-gray-700">Your Annual Income (Gross)</label>
-          <input type="number" id="yourIncome" value="0" inputmode="numeric" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            <h1 class="text-2xl font-bold text-gray-800">Knoxville Budget</h1>
+            <p class="text-xs text-gray-500">Live Sync Enabled</p>
+        </div>
+        <button id="syncBtn" onclick="syncWithSheet()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-md transition-all active:scale-95 flex items-center gap-2">
+            <span id="btnText">Sync Data</span>
+        </button>
+    </div>
+
+    <div class="mb-6 bg-white shadow-lg rounded-xl p-6 border-l-4 border-indigo-500">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
+        <div>
+            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Monthly Net (After Tax)</h3>
+            <p class="text-3xl font-black text-green-600" id="monthlyCombinedIncome">$0</p>
         </div>
         <div>
-          <label for="wifeIncome" class="block text-sm font-medium text-gray-700">Wife's Annual Income (Gross)</label>
-          <input type="number" id="wifeIncome" value="95000" inputmode="numeric" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2 border focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Monthly Bills</h3>
+            <p class="text-3xl font-black text-red-500" id="totalBills">$0</p>
+        </div>
+        <div>
+            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Monthly Surplus</h3>
+            <p class="text-3xl font-black text-indigo-600" id="surplus">$0</p>
         </div>
       </div>
     </div>
 
-    <div class="mb-6 bg-white shadow-lg rounded-lg p-6">
-      <h2 class="text-xl font-semibold text-gray-800 mb-4">Financial Summary</h2>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div>
-          <h3 class="text-lg font-medium text-gray-700 mb-2">Income</h3>
-          <div class="space-y-2">
-            <div>
-              <p class="text-sm font-medium text-gray-700">Combined Annual Gross:</p>
-              <p class="text-base font-bold text-gray-900" id="currentCombinedIncome">$0</p>
-            </div>
-            <div>
-              <p class="text-sm font-medium text-gray-700">Monthly Combined (Post-Tax):</p>
-              <p class="text-base font-bold text-green-600" id="monthlyCombinedIncome">$0</p>
-            </div>
-          </div>
+    <div class="bg-white shadow-lg rounded-xl p-4 mb-6">
+        <div style="height: 320px;">
+            <canvas id="budgetChart"></canvas>
         </div>
-
-        <div>
-          <h3 class="text-lg font-medium text-gray-700 mb-2">Expenses & Surplus</h3>
-          <div class="space-y-2">
-            <div>
-              <p class="text-sm font-medium text-gray-700">Total Monthly Bills:</p>
-              <p class="text-base font-bold text-red-600" id="totalBills">$0</p>
-            </div>
-            <div>
-              <p class="text-sm font-medium text-gray-700">Monthly Surplus:</p>
-              <p class="text-base font-bold text-indigo-600" id="surplus">$0</p>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <h3 class="text-lg font-medium text-gray-700 mb-2">Analysis</h3>
-          <div class="space-y-2">
-            <div>
-              <p class="text-sm font-medium text-gray-700">Housing Cost Ratio:</p>
-              <p class="text-base font-bold text-gray-900" id="housingRatio">0%</p>
-            </div>
-            <div>
-              <p class="text-sm font-medium text-gray-700">Min. Annual Income Needed:</p>
-              <p class="text-base font-bold text-gray-900" id="minIncome">$0</p>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 
-    <div class="chart-container bg-white shadow-lg rounded-lg mb-6">
-      <canvas id="budgetChart"></canvas>
-    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white shadow-lg rounded-xl p-6">
+            <h2 class="text-lg font-bold mb-4 text-gray-700 border-b pb-2 flex items-center gap-2">
+                💰 Income (Annual Gross)
+            </h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Your Income</label>
+                    <input type="number" id="yourIncome" class="w-full border-gray-200 border rounded-lg p-3 text-lg font-semibold focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Wife's Income</label>
+                    <input type="number" id="wifeIncome" class="w-full border-gray-200 border rounded-lg p-3 text-lg font-semibold focus:ring-2 focus:ring-indigo-500 outline-none">
+                </div>
+            </div>
+        </div>
 
-    <div class="bg-white shadow-lg rounded-lg p-6">
-      <h2 class="text-xl font-semibold text-gray-800 mb-4">Monthly Expenses</h2>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="expensesGrid">
-        <div>
-          <label for="mortgage" class="block text-sm font-medium text-gray-700">Mortgage</label>
-          <input type="number" id="mortgage" value="1600" class="mt-1 block w-full border border-gray-300 rounded-md p-2">
+        <div class="bg-white shadow-lg rounded-xl p-6">
+            <h2 class="text-lg font-bold mb-4 text-gray-700 border-b pb-2 flex items-center gap-2">
+                📉 Monthly Expenses
+            </h2>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="text-[10px] font-bold text-gray-400 uppercase">Mortgage</label>
+                    <input type="number" id="mortgage" class="w-full border-gray-200 border rounded p-2 focus:border-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-gray-400 uppercase">Groceries</label>
+                    <input type="number" id="foodGroceries" class="w-full border-gray-200 border rounded p-2 focus:border-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-gray-400 uppercase">Tesla 1</label>
+                    <input type="number" id="tesla1" class="w-full border-gray-200 border rounded p-2 focus:border-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] font-bold text-gray-400 uppercase">Tesla 2</label>
+                    <input type="number" id="tesla2" class="w-full border-gray-200 border rounded p-2 focus:border-indigo-500 outline-none">
+                </div>
+                
+                <div class="hidden">
+                    <input type="number" id="sands"> <input type="number" id="carInsurance">
+                    <input type="number" id="electric"> <input type="number" id="phone">
+                    <input type="number" id="water"> <input type="number" id="insurance">
+                    <input type="number" id="internet"> <input type="number" id="sling">
+                    <input type="number" id="tucker"> <input type="number" id="odie">
+                    <input type="number" id="amazon"> <input type="number" id="netflix">
+                </div>
+            </div>
+            <p class="text-[10px] text-gray-400 mt-4 italic">Note: Utility and pet costs (Tucker/Odie) are synced automatically.</p>
         </div>
-        <div>
-          <label for="foodGroceries" class="block text-sm font-medium text-gray-700">Food/Groceries</label>
-          <input type="number" id="foodGroceries" value="1000" class="mt-1 block w-full border border-gray-300 rounded-md p-2">
-        </div>
-        <div>
-          <label for="tesla1" class="block text-sm font-medium text-gray-700">Tesla (1)</label>
-          <input type="number" id="tesla1" value="490" class="mt-1 block w-full border border-gray-300 rounded-md p-2">
-        </div>
-        <div>
-          <label for="tesla2" class="block text-sm font-medium text-gray-700">Tesla (2)</label>
-          <input type="number" id="tesla2" value="415" class="mt-1 block w-full border border-gray-300 rounded-md p-2">
-        </div>
-        <div>
-          <label for="sands" class="block text-sm font-medium text-gray-700">S&S</label>
-          <input type="number" id="sands" value="400" class="mt-1 block w-full border border-gray-300 rounded-md p-2">
-        </div>
-        <div>
-          <label for="carInsurance" class="block text-sm font-medium text-gray-700">Car Insurance</label>
-          <input type="number" id="carInsurance" value="300" class="mt-1 block w-full border border-gray-300 rounded-md p-2">
-        </div>
-        <div>
-          <label for="electric" class="block text-sm font-medium text-gray-700">Electric</label>
-          <input type="number" id="electric" value="250" class="mt-1 block w-full border border-gray-300 rounded-md p-2">
-        </div>
-        <div>
-          <label for="phone" class="block text-sm font-medium text-gray-700">Phone</label>
-          <input type="number" id="phone" value="150" class="mt-1 block w-full border border-gray-300 rounded-md p-2">
-        </div>
-        <div>
-          <label for="water" class="block text-sm font-medium text-gray-700">Water</label>
-          <input type="number" id="water" value="150" class="mt-1 block w-full border border-gray-300 rounded-md p-2">
-        </div>
-        <div>
-          <label for="insurance" class="block text-sm font-medium text-gray-700">Life Insurance</label>
-          <input type="number" id="insurance" value="90" class="mt-1 block w-full border border-gray-300 rounded-md p-2">
-        </div>
-        <div>
-          <label for="internet" class="block text-sm font-medium text-gray-700">Internet</label>
-          <input type="number" id="internet" value="65" class="mt-1 block w-full border border-gray-300 rounded-md p-2">
-        </div>
-        <div>
-          <label for="sling" class="block text-sm font-medium text-gray-700">Philo/Sling</label>
-          <input type="number" id="sling" value="35" class="mt-1 block w-full border border-gray-300 rounded-md p-2">
-        </div>
-        <div>
-          <label for="tucker" class="block text-sm font-medium text-gray-700">Tucker</label>
-          <input type="number" id="tucker" value="45" class="mt-1 block w-full border border-gray-300 rounded-md p-2">
-        </div>
-        <div>
-          <label for="odie" class="block text-sm font-medium text-gray-700">Odie</label>
-          <input type="number" id="odie" value="30" class="mt-1 block w-full border border-gray-300 rounded-md p-2">
-        </div>
-        <div>
-          <label for="amazon" class="block text-sm font-medium text-gray-700">Amazon</label>
-          <input type="number" id="amazon" value="20" class="mt-1 block w-full border border-gray-300 rounded-md p-2">
-        </div>
-        <div>
-          <label for="netflix" class="block text-sm font-medium text-gray-700">Netflix</label>
-          <input type="number" id="netflix" value="20" class="mt-1 block w-full border border-gray-300 rounded-md p-2">
-        </div>
-      </div>
     </div>
   </div>
 
   <script>
     Chart.register(ChartDataLabels);
     const ctx = document.getElementById('budgetChart').getContext('2d');
+    const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRDoP-8zjTmyIzsFei7-icriWqs5OGQSf-9YxPnUNpftY9SRmsoUcaVmugOrEFcyoPpNKnIMu9_5mAU/pub?output=csv';
 
-    // These MUST match the IDs in the HTML inputs
-    const expenseKeys = [
-      'mortgage', 'foodGroceries', 'tesla1', 'tesla2', 'sands', 
-      'carInsurance', 'electric', 'phone', 'water', 'insurance', 
-      'internet', 'sling', 'tucker', 'odie', 'amazon', 'netflix'
-    ];
+    const incomeKeys = ['yourIncome', 'wifeIncome'];
+    const expenseKeys = ['mortgage', 'foodGroceries', 'tesla1', 'tesla2', 'sands', 'carInsurance', 'electric', 'phone', 'water', 'insurance', 'internet', 'sling', 'tucker', 'odie', 'amazon', 'netflix'];
+    const allKeys = [...incomeKeys, ...expenseKeys];
 
-    // Global variable for chart to allow updates
     let chart;
 
     function initChart() {
       chart = new Chart(ctx, {
         type: 'bar',
-        data: {
-          labels: ['Income (Post-Tax)', 'Bills', 'Surplus'],
-          datasets: [{
-            data: [0, 0, 0],
-            backgroundColor: [
-              'rgba(34, 197, 94, 0.8)', // Green
-              'rgba(239, 68, 68, 0.8)',  // Red
-              'rgba(79, 70, 229, 0.8)'   // Indigo
-            ],
-            borderWidth: 1
-          }]
+        data: { 
+            labels: ['Monthly Net', 'Bills', 'Surplus'], 
+            datasets: [{ 
+                data: [0, 0, 0], 
+                backgroundColor: ['#10b981', '#ef4444', '#6366f1'],
+                borderRadius: 8
+            }] 
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            datalabels: {
-              anchor: 'end',
-              align: 'top',
-              formatter: (value) => `$${Math.round(value).toLocaleString()}`,
-              font: { weight: 'bold' }
-            }
-          },
-          scales: {
-            y: { beginAtZero: true, ticks: { callback: (v) => '$' + v } }
-          }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false, 
+            plugins: { 
+                legend: { display: false }, 
+                datalabels: { 
+                    anchor: 'end', 
+                    align: 'top', 
+                    formatter: (v) => `$${Math.round(v).toLocaleString()}`, 
+                    font: { weight: 'bold', size: 12 } 
+                } 
+            },
+            scales: { y: { display: false, beginAtZero: true } }
         }
       });
     }
 
-    function updateDisplay() {
-      // 1. Get Income Values
-      const yInc = parseFloat(document.getElementById('yourIncome').value) || 0;
-      const wInc = parseFloat(document.getElementById('wifeIncome').value) || 0;
-      const taxRate = 0.7253; // Assuming ~27% tax/deductions
+    async function syncWithSheet() {
+      const btnText = document.getElementById('btnText');
+      btnText.innerText = 'Syncing...';
 
-      const monthlyPostTax = ((yInc + wInc) * taxRate) / 12;
+      try {
+        // cachebust= ensures we don't get old data from Google's servers
+        const response = await fetch(`${sheetUrl}&cachebust=${Date.now()}`);
+        const csvText = await response.text();
+        const rows = csvText.split(/\r?\n/);
 
-      // 2. Get Expense Values
-      let totalBills = 0;
-      const expensesObj = {};
-      expenseKeys.forEach(key => {
-        const val = parseFloat(document.getElementById(key).value) || 0;
-        expensesObj[key] = val;
-        totalBills += val;
-      });
+        rows.forEach(row => {
+            const cols = row.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/);
+            if (cols.length >= 2) {
+                // Remove spaces, quotes, and special characters from the sheet's name
+                let rawKey = cols[0].replace(/["\s\/\-]/g, '').toLowerCase();
+                let val = cols[1].replace(/[$,"]/g, '').trim();
+                
+                // Smart Mapping
+                let targetId = null;
+                if (rawKey.includes('wife')) targetId = 'wifeIncome';
+                else if (rawKey.includes('your')) targetId = 'yourIncome';
+                else if (rawKey.includes('philo') || rawKey.includes('sling')) targetId = 'sling';
+                else if (rawKey.includes('grocer')) targetId = 'foodGroceries';
+                else targetId = allKeys.find(k => k.toLowerCase() === rawKey);
 
-      const surplus = monthlyPostTax - totalBills;
-      const grossMonthly = (yInc + wInc) / 12;
+                const input = document.getElementById(targetId);
+                if (input && val !== "") {
+                    input.value = parseFloat(val) || 0;
+                }
+            }
+        });
 
-      // 3. Update Chart
-      chart.data.datasets[0].data = [monthlyPostTax, totalBills, surplus];
-      chart.update();
-
-      // 4. Update UI Text
-      document.getElementById('currentCombinedIncome').textContent = `$${(yInc + wInc).toLocaleString()}`;
-      document.getElementById('monthlyCombinedIncome').textContent = `$${Math.round(monthlyPostTax).toLocaleString()}`;
-      document.getElementById('totalBills').textContent = `$${Math.round(totalBills).toLocaleString()}`;
-      document.getElementById('surplus').textContent = `$${Math.round(surplus).toLocaleString()}`;
-      
-      const minAnnual = (totalBills * 12) / taxRate;
-      document.getElementById('minIncome').textContent = `$${Math.round(minAnnual).toLocaleString()}`;
-
-      if (grossMonthly > 0) {
-        const hRatio = (expensesObj.mortgage / grossMonthly) * 100;
-        document.getElementById('housingRatio').textContent = `${hRatio.toFixed(1)}%`;
+        updateDisplay();
+        btnText.innerText = 'Sync Data';
+      } catch (e) {
+        console.error(e);
+        btnText.innerText = 'Sync Error';
       }
     }
 
-    // Attach Listeners to everything
-    document.getElementById('yourIncome').addEventListener('input', updateDisplay);
-    document.getElementById('wifeIncome').addEventListener('input', updateDisplay);
-    
-    expenseKeys.forEach(key => {
-      document.getElementById(key).addEventListener('input', updateDisplay);
+    function updateDisplay() {
+      const taxRate = 0.7253; // Combined estimate for TN residents
+      const yInc = parseFloat(document.getElementById('yourIncome').value) || 0;
+      const wInc = parseFloat(document.getElementById('wifeIncome').value) || 0;
+      const monthlyNet = ((yInc + wInc) * taxRate) / 12;
+
+      let bills = 0;
+      expenseKeys.forEach(k => {
+        bills += parseFloat(document.getElementById(k).value) || 0;
+      });
+
+      const surplus = monthlyNet - bills;
+      
+      document.getElementById('monthlyCombinedIncome').innerText = `$${Math.round(monthlyNet).toLocaleString()}`;
+      document.getElementById('totalBills').innerText = `$${Math.round(bills).toLocaleString()}`;
+      document.getElementById('surplus').innerText = `$${Math.round(surplus).toLocaleString()}`;
+
+      chart.data.datasets[0].data = [monthlyNet, bills, surplus];
+      chart.update();
+    }
+
+    // Attach listeners so chart updates when you type manually
+    allKeys.forEach(id => {
+        document.getElementById(id)?.addEventListener('input', updateDisplay);
     });
 
-    // Start
     initChart();
-    updateDisplay();
+    syncWithSheet(); // Initial pull
   </script>
 </body>
 </html>
