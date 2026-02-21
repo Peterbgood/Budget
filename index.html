@@ -3,134 +3,73 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Knoxville Budget Overview</title>
+  <title>Knoxville Budget Tracker</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
 </head>
-<body class="bg-gray-100 font-sans">
+<body class="bg-gray-50 font-sans">
   <div class="container mx-auto px-4 py-6 max-w-4xl">
     
-    <div class="flex justify-between items-center mb-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800">Knoxville Budget</h1>
-            <p class="text-xs text-gray-500">Live Sync Enabled</p>
+            <h1 class="text-3xl font-black text-slate-900 tracking-tight">Knoxville Budget</h1>
+            <p id="lastSync" class="text-xs text-slate-500 font-medium uppercase tracking-widest mt-1">Initializing...</p>
         </div>
-        <button id="syncBtn" onclick="syncWithSheet()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-bold shadow-md transition-all active:scale-95 flex items-center gap-2">
-            <span id="btnText">Sync Data</span>
+        <button id="syncBtn" onclick="syncWithSheet()" class="w-full sm:w-auto bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 shadow-lg active:scale-95">
+            <span id="btnText">Sync from Google Sheets</span>
         </button>
     </div>
 
-    <div class="mb-6 bg-white shadow-lg rounded-xl p-6 border-l-4 border-indigo-500">
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
-        <div>
-            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Monthly Net (After Tax)</h3>
-            <p class="text-3xl font-black text-green-600" id="monthlyCombinedIncome">$0</p>
-        </div>
-        <div>
-            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Monthly Bills</h3>
-            <p class="text-3xl font-black text-red-500" id="totalBills">$0</p>
-        </div>
-        <div>
-            <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Monthly Surplus</h3>
-            <p class="text-3xl font-black text-indigo-600" id="surplus">$0</p>
-        </div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+          <p class="text-xs font-bold text-slate-400 uppercase mb-1">Monthly Net (After Tax)</p>
+          <p class="text-3xl font-black text-emerald-600" id="monthlyNet">$0</p>
+      </div>
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+          <p class="text-xs font-bold text-slate-400 uppercase mb-1">Monthly Expenses</p>
+          <p class="text-3xl font-black text-rose-500" id="totalBills">$0</p>
+      </div>
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+          <p class="text-xs font-bold text-slate-400 uppercase mb-1">Monthly Surplus</p>
+          <p class="text-3xl font-black text-indigo-600" id="surplus">$0</p>
       </div>
     </div>
 
-    <div class="bg-white shadow-lg rounded-xl p-4 mb-6">
-        <div style="height: 320px;">
-            <canvas id="budgetChart"></canvas>
-        </div>
+    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-8">
+        <div style="height: 300px;"><canvas id="budgetChart"></canvas></div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="bg-white shadow-lg rounded-xl p-6">
-            <h2 class="text-lg font-bold mb-4 text-gray-700 border-b pb-2 flex items-center gap-2">
-                💰 Income (Annual Gross)
-            </h2>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Your Income</label>
-                    <input type="number" id="yourIncome" class="w-full border-gray-200 border rounded-lg p-3 text-lg font-semibold focus:ring-2 focus:ring-indigo-500 outline-none">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Wife's Income</label>
-                    <input type="number" id="wifeIncome" class="w-full border-gray-200 border rounded-lg p-3 text-lg font-semibold focus:ring-2 focus:ring-indigo-500 outline-none">
-                </div>
-            </div>
-        </div>
-
-        <div class="bg-white shadow-lg rounded-xl p-6">
-            <h2 class="text-lg font-bold mb-4 text-gray-700 border-b pb-2 flex items-center gap-2">
-                📉 Monthly Expenses
-            </h2>
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="text-[10px] font-bold text-gray-400 uppercase">Mortgage</label>
-                    <input type="number" id="mortgage" class="w-full border-gray-200 border rounded p-2 focus:border-indigo-500 outline-none">
-                </div>
-                <div>
-                    <label class="text-[10px] font-bold text-gray-400 uppercase">Groceries</label>
-                    <input type="number" id="foodGroceries" class="w-full border-gray-200 border rounded p-2 focus:border-indigo-500 outline-none">
-                </div>
-                <div>
-                    <label class="text-[10px] font-bold text-gray-400 uppercase">Tesla 1</label>
-                    <input type="number" id="tesla1" class="w-full border-gray-200 border rounded p-2 focus:border-indigo-500 outline-none">
-                </div>
-                <div>
-                    <label class="text-[10px] font-bold text-gray-400 uppercase">Tesla 2</label>
-                    <input type="number" id="tesla2" class="w-full border-gray-200 border rounded p-2 focus:border-indigo-500 outline-none">
-                </div>
-                
-                <div class="hidden">
-                    <input type="number" id="sands"> <input type="number" id="carInsurance">
-                    <input type="number" id="electric"> <input type="number" id="phone">
-                    <input type="number" id="water"> <input type="number" id="insurance">
-                    <input type="number" id="internet"> <input type="number" id="sling">
-                    <input type="number" id="tucker"> <input type="number" id="odie">
-                    <input type="number" id="amazon"> <input type="number" id="netflix">
-                </div>
-            </div>
-            <p class="text-[10px] text-gray-400 mt-4 italic">Note: Utility and pet costs (Tucker/Odie) are synced automatically.</p>
-        </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <section>
+            <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">💰 Income</h2>
+            <div id="incomeList" class="space-y-3"></div>
+        </section>
+        <section>
+            <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">📉 Expenses</h2>
+            <div id="expenseList" class="grid grid-cols-1 gap-3"></div>
+        </section>
     </div>
   </div>
 
   <script>
     Chart.register(ChartDataLabels);
-    const ctx = document.getElementById('budgetChart').getContext('2d');
     const sheetUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRDoP-8zjTmyIzsFei7-icriWqs5OGQSf-9YxPnUNpftY9SRmsoUcaVmugOrEFcyoPpNKnIMu9_5mAU/pub?output=csv';
-
-    const incomeKeys = ['yourIncome', 'wifeIncome'];
-    const expenseKeys = ['mortgage', 'foodGroceries', 'tesla1', 'tesla2', 'sands', 'carInsurance', 'electric', 'phone', 'water', 'insurance', 'internet', 'sling', 'tucker', 'odie', 'amazon', 'netflix'];
-    const allKeys = [...incomeKeys, ...expenseKeys];
-
+    
+    let budgetData = { income: [], expenses: [] };
     let chart;
 
     function initChart() {
+      const ctx = document.getElementById('budgetChart').getContext('2d');
       chart = new Chart(ctx, {
         type: 'bar',
         data: { 
-            labels: ['Monthly Net', 'Bills', 'Surplus'], 
-            datasets: [{ 
-                data: [0, 0, 0], 
-                backgroundColor: ['#10b981', '#ef4444', '#6366f1'],
-                borderRadius: 8
-            }] 
+            labels: ['Net Income', 'Expenses', 'Surplus'], 
+            datasets: [{ data: [0, 0, 0], backgroundColor: ['#059669', '#e11d48', '#4f46e5'], borderRadius: 12 }] 
         },
         options: { 
-            responsive: true, 
-            maintainAspectRatio: false, 
-            plugins: { 
-                legend: { display: false }, 
-                datalabels: { 
-                    anchor: 'end', 
-                    align: 'top', 
-                    formatter: (v) => `$${Math.round(v).toLocaleString()}`, 
-                    font: { weight: 'bold', size: 12 } 
-                } 
-            },
+            responsive: true, maintainAspectRatio: false, 
+            plugins: { legend: { display: false }, datalabels: { anchor: 'end', align: 'top', formatter: (v) => `$${Math.round(v).toLocaleString()}`, font: { weight: 'bold' } } },
             scales: { y: { display: false, beginAtZero: true } }
         }
       });
@@ -138,72 +77,73 @@
 
     async function syncWithSheet() {
       const btnText = document.getElementById('btnText');
-      btnText.innerText = 'Syncing...';
-
+      btnText.innerText = 'Updating...';
+      
       try {
-        // cachebust= ensures we don't get old data from Google's servers
         const response = await fetch(`${sheetUrl}&cachebust=${Date.now()}`);
         const csvText = await response.text();
-        const rows = csvText.split(/\r?\n/);
+        const rows = csvText.split(/\r?\n/).slice(1); // Skip header row
+
+        budgetData = { income: [], expenses: [] };
 
         rows.forEach(row => {
             const cols = row.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/);
             if (cols.length >= 2) {
-                // Remove spaces, quotes, and special characters from the sheet's name
-                let rawKey = cols[0].replace(/["\s\/\-]/g, '').toLowerCase();
-                let val = cols[1].replace(/[$,"]/g, '').trim();
+                const label = cols[0].replace(/"/g, '').trim();
+                const value = parseFloat(cols[1].replace(/[$,"]/g, '').trim()) || 0;
                 
-                // Smart Mapping
-                let targetId = null;
-                if (rawKey.includes('wife')) targetId = 'wifeIncome';
-                else if (rawKey.includes('your')) targetId = 'yourIncome';
-                else if (rawKey.includes('philo') || rawKey.includes('sling')) targetId = 'sling';
-                else if (rawKey.includes('grocer')) targetId = 'foodGroceries';
-                else targetId = allKeys.find(k => k.toLowerCase() === rawKey);
-
-                const input = document.getElementById(targetId);
-                if (input && val !== "") {
-                    input.value = parseFloat(val) || 0;
+                if (label.toLowerCase().includes('income')) {
+                    budgetData.income.push({ label, value });
+                } else {
+                    budgetData.expenses.push({ label, value });
                 }
             }
         });
 
+        renderLists();
         updateDisplay();
-        btnText.innerText = 'Sync Data';
+        document.getElementById('lastSync').innerText = `Last Updated: ${new Date().toLocaleTimeString()}`;
       } catch (e) {
         console.error(e);
-        btnText.innerText = 'Sync Error';
+      } finally {
+        btnText.innerText = 'Sync from Google Sheets';
       }
     }
 
+    function renderLists() {
+        const incDiv = document.getElementById('incomeList');
+        const expDiv = document.getElementById('expenseList');
+        
+        incDiv.innerHTML = budgetData.income.map(item => createRow(item, 'income')).join('');
+        expDiv.innerHTML = budgetData.expenses.map(item => createRow(item, 'expense')).join('');
+    }
+
+    function createRow(item, type) {
+        return `
+            <div class="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+                <span class="text-sm font-bold text-slate-600">${item.label}</span>
+                <span class="font-mono font-bold ${type === 'income' ? 'text-emerald-600' : 'text-slate-900'}">$${item.value.toLocaleString()}</span>
+            </div>
+        `;
+    }
+
     function updateDisplay() {
-      const taxRate = 0.7253; // Combined estimate for TN residents
-      const yInc = parseFloat(document.getElementById('yourIncome').value) || 0;
-      const wInc = parseFloat(document.getElementById('wifeIncome').value) || 0;
-      const monthlyNet = ((yInc + wInc) * taxRate) / 12;
+      const taxRate = 0.7253;
+      const totalGrossIncome = budgetData.income.reduce((sum, item) => sum + item.value, 0);
+      const monthlyNet = (totalGrossIncome * taxRate) / 12;
+      const totalExpenses = budgetData.expenses.reduce((sum, item) => sum + item.value, 0);
+      const surplus = monthlyNet - totalExpenses;
 
-      let bills = 0;
-      expenseKeys.forEach(k => {
-        bills += parseFloat(document.getElementById(k).value) || 0;
-      });
-
-      const surplus = monthlyNet - bills;
-      
-      document.getElementById('monthlyCombinedIncome').innerText = `$${Math.round(monthlyNet).toLocaleString()}`;
-      document.getElementById('totalBills').innerText = `$${Math.round(bills).toLocaleString()}`;
+      document.getElementById('monthlyNet').innerText = `$${Math.round(monthlyNet).toLocaleString()}`;
+      document.getElementById('totalBills').innerText = `$${Math.round(totalExpenses).toLocaleString()}`;
       document.getElementById('surplus').innerText = `$${Math.round(surplus).toLocaleString()}`;
 
-      chart.data.datasets[0].data = [monthlyNet, bills, surplus];
+      chart.data.datasets[0].data = [monthlyNet, totalExpenses, surplus];
       chart.update();
     }
 
-    // Attach listeners so chart updates when you type manually
-    allKeys.forEach(id => {
-        document.getElementById(id)?.addEventListener('input', updateDisplay);
-    });
-
     initChart();
-    syncWithSheet(); // Initial pull
+    syncWithSheet();
   </script>
 </body>
 </html>
