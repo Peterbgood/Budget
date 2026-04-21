@@ -93,9 +93,25 @@ function App() {
           const val = i.amounts ? (i.amounts[locIdx] ?? i.amounts[0]) : (i.amount || 0);
           return sum + val;
         }, 0);
+      
+      // SUMMATION LOGIC: Strictly pulls only Mortgage P&I, Taxes, and Insurance
+      const logMortgageTotal = items
+        .filter(i => {
+            const name = i.name.toLowerCase();
+            // Using more specific keywords to avoid accidental overlap with other bills
+            return name === 'mortgage p&i' || 
+                   name === 'mortgage taxes' || 
+                   name === 'mortgage insurance' ||
+                   (name.includes('mortgage') && (name.includes('p&i') || name.includes('tax') || name.includes('ins')));
+        })
+        .reduce((sum, i) => {
+            const val = i.amounts ? (i.amounts[locIdx] ?? i.amounts[0]) : (i.amount || 0);
+            return sum + val;
+        }, 0);
+
       const net = (calculateTotal('income') * TAX_RATE) / 12;
       const exp = calculateTotal('expense');
-      return { net, exp, surplus: net - exp };
+      return { net, exp, surplus: net - exp, logMortgage: logMortgageTotal };
     });
   }, [items, locations]);
 
@@ -191,17 +207,25 @@ function App() {
               </div>
               <div className="space-y-4 md:space-y-6">
                 <div><label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">Interest Rate %</label><input type="number" step="0.1" value={mortgage.interest} onChange={e => setMortgage({...mortgage, interest: Number(e.target.value)})} className="w-full p-4 md:p-5 bg-slate-50 rounded-[1.5rem] outline-none font-bold text-indigo-600" /></div>
-                <div><label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">Annual Tax</label><input type="text" value={mortgage.annualTax} onChange={e => setMortgage({...mortgage, annualTax: Number(handleNumChange(e.target.value))})} className="w-full p-4 md:p-5 bg-slate-50 rounded-[1.5rem] outline-none font-bold text-rose-500" /></div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">Annual Tax</label>
+                  <input type="text" value={mortgage.annualTax} onChange={e => setMortgage({...mortgage, annualTax: Number(handleNumChange(e.target.value))})} className="w-full p-4 md:p-5 bg-slate-50 rounded-[1.5rem] outline-none font-bold text-rose-500" />
+                  <p className="mt-1 ml-2 text-[9px] font-bold text-rose-400 uppercase tracking-tighter">~ {formatCurrency(mortgageResult.tax)} / month</p>
+                </div>
               </div>
               <div className="space-y-4 md:space-y-6">
-                <div><label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">Annual Insurance</label><input type="text" value={mortgage.annualInsurance} onChange={e => setMortgage({...mortgage, annualInsurance: Number(handleNumChange(e.target.value))})} className="w-full p-4 md:p-5 bg-slate-50 rounded-[1.5rem] outline-none font-bold text-amber-500" /></div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">Annual Insurance</label>
+                  <input type="text" value={mortgage.annualInsurance} onChange={e => setMortgage({...mortgage, annualInsurance: Number(handleNumChange(e.target.value))})} className="w-full p-4 md:p-5 bg-slate-50 rounded-[1.5rem] outline-none font-bold text-amber-500" />
+                  <p className="mt-1 ml-2 text-[9px] font-bold text-amber-500 uppercase tracking-tighter">~ {formatCurrency(mortgageResult.insurance)} / month</p>
+                </div>
                 <div className="p-4 md:p-5 bg-slate-50 rounded-[1.5rem]">
                   <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Loan Principal</p>
                   <p className="text-lg md:text-xl font-black">{formatCurrency(mortgage.price - mortgage.downPayment)}</p>
                 </div>
               </div>
               <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-[2.5rem] md:rounded-[3rem] p-8 md:p-10 text-white flex flex-col justify-center shadow-2xl">
-                <p className="text-indigo-200 text-[10px] font-black uppercase tracking-widest mb-2 relative z-10">Monthly PITI</p>
+                <p className="text-indigo-200 text-[10px] font-black uppercase tracking-widest mb-2 relative z-10">Calc Estimate (PITI)</p>
                 <p className="text-4xl md:text-6xl font-black tracking-tighter relative z-10">{formatCurrency(mortgageResult.total)}</p>
                 <div className="mt-6 flex flex-col gap-1 text-[10px] font-bold opacity-60 relative z-10">
                     <span>P&I: {formatCurrency(mortgageResult.pAndI)}</span>
@@ -216,9 +240,18 @@ function App() {
           {locations.map((loc, i) => (
             <div key={i} className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-sm border border-slate-100 group transition-all">
               <input value={loc} onChange={(e) => { const n = [...locations]; n[i] = e.target.value; setLocations(n); }} className="w-full font-black text-lg md:text-xl outline-none bg-transparent focus:text-indigo-600" />
-              <div className="mt-4 md:mt-6 pt-4 md:pt-6 border-t border-slate-50 flex justify-between items-end">
-                <div><p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Surplus</p><p className="text-2xl md:text-3xl font-black tracking-tighter text-indigo-600">{formatCurrency(comparisonTotals[i].surplus)}</p></div>
-                {locations.length > 1 && <button onClick={() => setLocations(locations.filter((_, idx) => idx !== i))} className="text-slate-100 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity pb-2">✕</button>}
+              <div className="mt-4 md:mt-6 pt-4 md:pt-6 border-t border-slate-50 space-y-4">
+                <div className="flex justify-between items-end">
+                  <div>
+                    <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Net Surplus</p>
+                    <p className="text-2xl md:text-3xl font-black tracking-tighter text-indigo-600">{formatCurrency(comparisonTotals[i].surplus)}</p>
+                  </div>
+                  {locations.length > 1 && <button onClick={() => setLocations(locations.filter((_, idx) => idx !== i))} className="text-slate-100 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity pb-2">✕</button>}
+                </div>
+                <div className="bg-slate-50 p-3 rounded-2xl">
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">PITI (Log Sum)</p>
+                    <p className="text-sm font-black text-slate-900">{formatCurrency(comparisonTotals[i].logMortgage)}</p>
+                </div>
               </div>
             </div>
           ))}
@@ -263,7 +296,6 @@ function App() {
                 <div className="divide-y divide-slate-50">
                   {items.filter(i => i.type === type).map((item) => (
                     <div key={item.id} className="p-6 md:px-10 md:py-8 flex flex-col md:flex-row items-start md:items-center hover:bg-slate-50/50 transition-all group">
-                      {/* Name & Reorder */}
                       <div className="w-full md:w-1/3 flex items-center justify-between md:justify-start gap-4 mb-4 md:mb-0">
                         <div className="flex items-center gap-4">
                             <div className="flex flex-col opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
@@ -272,26 +304,21 @@ function App() {
                             </div>
                             <span className="font-bold text-slate-800 text-lg md:text-base truncate">{item.name}</span>
                         </div>
-                        {/* Mobile Actions */}
                         <div className="flex md:hidden gap-2">
                            <button onClick={() => { setEditingId(item.id); setForm({ name: item.name, amounts: item.amounts ? item.amounts.map(String) : [String(item.amount || '')], type: item.type }); }} className="p-2 bg-slate-100 rounded-full text-slate-400">✎</button>
                            <button onClick={() => deleteDoc(doc(db, "budget", item.id))} className="p-2 bg-slate-100 rounded-full text-rose-300">✕</button>
                         </div>
                       </div>
-
-                      {/* STACKED AMOUNTS ON MOBILE, GRID ON DESKTOP */}
                       <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
                         {locations.map((loc, lIdx) => (
                           <div key={lIdx} className="flex justify-between md:justify-center items-center bg-slate-50 md:bg-transparent p-3 md:p-0 rounded-xl">
                             <span className="md:hidden text-[9px] font-black uppercase text-slate-400 tracking-widest">{loc}</span>
-                            <span className={`font-black text-sm ${lIdx === 0 ? 'text-indigo-400 md:text-slate-200' : 'text-slate-900'}`}>
+                            <span className={`font-black text-sm ${lIdx === 0 ? 'text-indigo-400 md:text-slate-400' : 'text-black'}`}>
                                 {formatCurrency(item.amounts ? (item.amounts[lIdx] ?? item.amounts[0]) : (item.amount || 0))}
                             </span>
                           </div>
                         ))}
                       </div>
-
-                      {/* Desktop Actions */}
                       <div className="hidden md:flex w-20 justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={() => { setEditingId(item.id); setForm({ name: item.name, amounts: item.amounts ? item.amounts.map(String) : [String(item.amount || '')], type: item.type }); }} className="text-slate-300 hover:text-indigo-600">✎</button>
                         <button onClick={() => deleteDoc(doc(db, "budget", item.id))} className="text-slate-300 hover:text-rose-500">✕</button>
