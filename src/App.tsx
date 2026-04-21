@@ -52,12 +52,12 @@ function App() {
     localStorage.setItem('budget_locations', JSON.stringify(locations));
   }, [locations]);
 
-  // Keyboard Support for PIN (Desktop Only)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isLocked) return;
       if (e.key >= '0' && e.key <= '9' && pin.length < 4) setPin(p => p + e.key);
       if (e.key === 'Backspace') setPin(p => p.slice(0, -1));
+      if (e.key === 'Escape') setPin("");
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -67,8 +67,11 @@ function App() {
     const principal = mortgage.price - mortgage.downPayment;
     const monthlyRate = (mortgage.interest / 100) / 12;
     const totalPayments = mortgage.term * 12;
-    const pAndI = (principal * monthlyRate * Math.pow(1 + monthlyRate, totalPayments)) / (Math.pow(1 + monthlyRate, totalPayments) - 1);
-    return { pAndI, tax: mortgage.annualTax / 12, insurance: mortgage.annualInsurance / 12, total: pAndI + (mortgage.annualTax / 12) + (mortgage.annualInsurance / 12) };
+    // Calculate P&I based on (Home Price - Down Payment)
+    const pAndI = principal > 0 ? (principal * monthlyRate * Math.pow(1 + monthlyRate, totalPayments)) / (Math.pow(1 + monthlyRate, totalPayments) - 1) : 0;
+    const tax = mortgage.annualTax / 12;
+    const insurance = mortgage.annualInsurance / 12;
+    return { pAndI, tax, insurance, total: pAndI + tax + insurance };
   }, [mortgage]);
 
   useEffect(() => {
@@ -111,7 +114,6 @@ function App() {
     if (!form.name || !form.amounts[0]) return;
     const processedAmounts = form.amounts.map((val, i) => i === 0 ? Number(val) : (val === '' ? Number(form.amounts[0]) : Number(val)));
     const payload = { name: form.name, amounts: processedAmounts, type: form.type };
-    
     if (editingId) {
       await updateDoc(doc(db, "budget", editingId), payload as any);
       setEditingId(null);
@@ -127,7 +129,6 @@ function App() {
     const idx = list.findIndex(i => i.id === item.id);
     const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
     if (targetIdx < 0 || targetIdx >= list.length) return;
-    
     const targetItem = list[targetIdx];
     await updateDoc(doc(db, "budget", item.id), { order: targetItem.order });
     await updateDoc(doc(db, "budget", targetItem.id), { order: item.order });
@@ -136,13 +137,12 @@ function App() {
   if (isLocked) {
     return (
       <div className="fixed inset-0 bg-white flex flex-col items-center justify-center p-6 z-50">
-        <div className={`w-full max-w-[300px] flex flex-col items-center ${error ? 'animate-shake' : ''}`}>
+        <div className={`w-full max-w-[320px] flex flex-col items-center ${error ? 'animate-shake' : ''}`}>
           <div className="mb-10 text-center">
             <div className="w-20 h-20 bg-slate-900 rounded-[2rem] flex items-center justify-center mb-6 mx-auto shadow-2xl">
               <span className="text-white text-3xl font-black italic">V</span>
             </div>
             <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Vault Locked</h2>
-            <p className="text-slate-400 text-sm mt-2">Enter your 4-digit passcode</p>
           </div>
           
           <div className="flex gap-6 mb-16">
@@ -152,13 +152,17 @@ function App() {
           </div>
 
           <div className="grid grid-cols-3 gap-x-8 gap-y-5">
-            {["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "Delete"].map((btn, i) => (
+            {["1", "2", "3", "4", "5", "6", "7", "8", "9", "Clear", "0", "Back"].map((btn, i) => (
               <button
                 key={i}
-                onClick={() => btn === "Delete" ? setPin(p => p.slice(0, -1)) : btn && setPin(p => p + btn)}
-                className={`w-16 h-16 flex flex-col items-center justify-center rounded-full transition-all active:scale-90 active:bg-slate-200 ${btn === "" ? "pointer-events-none opacity-0" : "bg-slate-100 hover:bg-slate-200"}`}
+                onClick={() => {
+                  if (btn === "Back") setPin(p => p.slice(0, -1));
+                  else if (btn === "Clear") setPin("");
+                  else if (btn !== "") setPin(p => p + btn);
+                }}
+                className={`w-16 h-16 flex flex-col items-center justify-center rounded-full transition-all active:scale-90 ${btn === "Clear" || btn === "Back" ? "bg-transparent" : "bg-slate-100 hover:bg-slate-200"}`}
               >
-                <span className={`text-2xl ${btn === "Delete" ? "text-[10px] font-black uppercase tracking-widest" : "font-semibold"}`}>{btn}</span>
+                <span className={`text-2xl ${btn === "Clear" || btn === "Back" ? "text-[10px] font-black uppercase tracking-widest text-slate-400" : "font-semibold"}`}>{btn}</span>
               </button>
             ))}
           </div>
@@ -172,9 +176,7 @@ function App() {
     <div className="min-h-screen bg-[#F8F9FC] p-4 md:p-10 text-slate-900 font-sans">
       <div className="max-w-6xl mx-auto">
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
-          <div>
-            <h1 className="text-4xl font-black tracking-tighter">Budget <span className="text-indigo-600 italic underline decoration-indigo-100 underline-offset-8">Vault</span></h1>
-          </div>
+          <h1 className="text-4xl font-black tracking-tighter">Budget <span className="text-indigo-600 italic underline decoration-indigo-100 underline-offset-8">Vault</span></h1>
           <div className="flex gap-3 w-full md:w-auto">
             <button onClick={() => setShowMortgage(!showMortgage)} className={`flex-1 md:flex-none px-8 py-4 rounded-3xl font-black text-[10px] uppercase tracking-widest transition-all shadow-sm ${showMortgage ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}>
               {showMortgage ? 'Close Calculator' : 'Mortgage Estimator'}
@@ -188,24 +190,32 @@ function App() {
              <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
               <div className="space-y-6">
                 <div><label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">Home Price</label><input type="text" value={mortgage.price} onChange={e => setMortgage({...mortgage, price: Number(handleNumChange(e.target.value))})} className="w-full p-5 bg-slate-50 rounded-[1.5rem] outline-none font-bold" /></div>
-                <div><label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">Down Payment</label><input type="text" value={mortgage.downPayment} onChange={e => setMortgage({...mortgage, downPayment: Number(handleNumChange(e.target.value))})} className="w-full p-5 bg-slate-50 rounded-[1.5rem] outline-none font-bold" /></div>
+                <div><label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">Down Payment</label><input type="text" value={mortgage.downPayment} onChange={e => setMortgage({...mortgage, downPayment: Number(handleNumChange(e.target.value))})} className="w-full p-5 bg-slate-50 rounded-[1.5rem] outline-none font-bold text-indigo-500" /></div>
               </div>
               <div className="space-y-6">
+                <div><label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">Interest Rate %</label><input type="number" step="0.1" value={mortgage.interest} onChange={e => setMortgage({...mortgage, interest: Number(e.target.value)})} className="w-full p-5 bg-slate-50 rounded-[1.5rem] outline-none font-bold text-indigo-600" /></div>
                 <div><label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">Annual Tax</label><input type="text" value={mortgage.annualTax} onChange={e => setMortgage({...mortgage, annualTax: Number(handleNumChange(e.target.value))})} className="w-full p-5 bg-slate-50 rounded-[1.5rem] outline-none font-bold text-rose-500" /></div>
-                <div><label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">Annual Insurance</label><input type="text" value={mortgage.annualInsurance} onChange={e => setMortgage({...mortgage, annualInsurance: Number(handleNumChange(e.target.value))})} className="w-full p-5 bg-slate-50 rounded-[1.5rem] outline-none font-bold text-amber-500" /></div>
               </div>
-              <div className="md:col-span-2 bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-[3rem] p-10 text-white flex flex-col justify-center shadow-2xl relative group overflow-hidden">
-                <p className="text-indigo-200 text-[10px] font-black uppercase tracking-widest mb-2 relative z-10">Estimated Monthly Payment</p>
+              <div className="space-y-6">
+                <div><label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">Annual Insurance</label><input type="text" value={mortgage.annualInsurance} onChange={e => setMortgage({...mortgage, annualInsurance: Number(handleNumChange(e.target.value))})} className="w-full p-5 bg-slate-50 rounded-[1.5rem] outline-none font-bold text-amber-500" /></div>
+                <div className="p-5 bg-slate-50 rounded-[1.5rem] flex flex-col justify-center">
+                  <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Loan Principal</p>
+                  <p className="text-xl font-black">{formatCurrency(mortgage.price - mortgage.downPayment)}</p>
+                </div>
+              </div>
+              <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-[3rem] p-10 text-white flex flex-col justify-center shadow-2xl relative overflow-hidden">
+                <p className="text-indigo-200 text-[10px] font-black uppercase tracking-widest mb-2 relative z-10">Monthly PITI</p>
                 <p className="text-6xl font-black tracking-tighter relative z-10">{formatCurrency(mortgageResult.total)}</p>
-                <div className="mt-6 flex gap-6 text-[10px] font-bold opacity-60 relative z-10">
+                <div className="mt-6 flex flex-col gap-1 text-[10px] font-bold opacity-60 relative z-10">
                     <span>P&I: {formatCurrency(mortgageResult.pAndI)}</span>
-                    <span>TAX: {formatCurrency(mortgageResult.tax)}</span>
+                    <span>T&I: {formatCurrency(mortgageResult.tax + mortgageResult.insurance)}</span>
                 </div>
               </div>
             </div>
           </div>
         )}
 
+        {/* Remainder of Component Logic stays identical to keep layout consistency */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           {locations.map((loc, i) => (
             <div key={i} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 group transition-all hover:shadow-lg">
