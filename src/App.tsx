@@ -67,7 +67,6 @@ function App() {
     const principal = mortgage.price - mortgage.downPayment;
     const monthlyRate = (mortgage.interest / 100) / 12;
     const totalPayments = mortgage.term * 12;
-    // Calculate P&I based on (Home Price - Down Payment)
     const pAndI = principal > 0 ? (principal * monthlyRate * Math.pow(1 + monthlyRate, totalPayments)) / (Math.pow(1 + monthlyRate, totalPayments) - 1) : 0;
     const tax = mortgage.annualTax / 12;
     const insurance = mortgage.annualInsurance / 12;
@@ -144,13 +143,11 @@ function App() {
             </div>
             <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Vault Locked</h2>
           </div>
-          
           <div className="flex gap-6 mb-16">
             {[0, 1, 2, 3].map(i => (
               <div key={i} className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ${pin.length > i ? 'bg-slate-900 border-slate-900 scale-125 shadow-lg' : 'border-slate-200'}`} />
             ))}
           </div>
-
           <div className="grid grid-cols-3 gap-x-8 gap-y-5">
             {["1", "2", "3", "4", "5", "6", "7", "8", "9", "Clear", "0", "Back"].map((btn, i) => (
               <button
@@ -179,33 +176,33 @@ function App() {
           <h1 className="text-4xl font-black tracking-tighter">Budget <span className="text-indigo-600 italic underline decoration-indigo-100 underline-offset-8">Vault</span></h1>
           <div className="flex gap-3 w-full md:w-auto">
             <button onClick={() => setShowMortgage(!showMortgage)} className={`flex-1 md:flex-none px-8 py-4 rounded-3xl font-black text-[10px] uppercase tracking-widest transition-all shadow-sm ${showMortgage ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'}`}>
-              {showMortgage ? 'Close Calculator' : 'Mortgage Estimator'}
+              Mortgage Estimator
             </button>
             <button onClick={() => { setIsLocked(true); setPin(""); }} className="bg-slate-900 text-white px-6 py-4 rounded-3xl shadow-xl hover:bg-slate-800 transition-all">🔒</button>
           </div>
         </header>
 
         {showMortgage && (
-          <div className="bg-white p-10 rounded-[3rem] shadow-xl border border-slate-100 mb-12 animate-in fade-in zoom-in-95 duration-500">
-             <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
-              <div className="space-y-6">
-                <div><label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">Home Price</label><input type="text" value={mortgage.price} onChange={e => setMortgage({...mortgage, price: Number(handleNumChange(e.target.value))})} className="w-full p-5 bg-slate-50 rounded-[1.5rem] outline-none font-bold" /></div>
-                <div><label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">Down Payment</label><input type="text" value={mortgage.downPayment} onChange={e => setMortgage({...mortgage, downPayment: Number(handleNumChange(e.target.value))})} className="w-full p-5 bg-slate-50 rounded-[1.5rem] outline-none font-bold text-indigo-500" /></div>
+          <div className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] shadow-xl border border-slate-100 mb-12 animate-in fade-in zoom-in-95 duration-500">
+             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-10">
+              <div className="space-y-4 md:space-y-6">
+                <div><label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">Home Price</label><input type="text" value={mortgage.price} onChange={e => setMortgage({...mortgage, price: Number(handleNumChange(e.target.value))})} className="w-full p-4 md:p-5 bg-slate-50 rounded-[1.5rem] outline-none font-bold" /></div>
+                <div><label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">Down Payment</label><input type="text" value={mortgage.downPayment} onChange={e => setMortgage({...mortgage, downPayment: Number(handleNumChange(e.target.value))})} className="w-full p-4 md:p-5 bg-slate-50 rounded-[1.5rem] outline-none font-bold text-indigo-500" /></div>
               </div>
-              <div className="space-y-6">
-                <div><label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">Interest Rate %</label><input type="number" step="0.1" value={mortgage.interest} onChange={e => setMortgage({...mortgage, interest: Number(e.target.value)})} className="w-full p-5 bg-slate-50 rounded-[1.5rem] outline-none font-bold text-indigo-600" /></div>
-                <div><label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">Annual Tax</label><input type="text" value={mortgage.annualTax} onChange={e => setMortgage({...mortgage, annualTax: Number(handleNumChange(e.target.value))})} className="w-full p-5 bg-slate-50 rounded-[1.5rem] outline-none font-bold text-rose-500" /></div>
+              <div className="space-y-4 md:space-y-6">
+                <div><label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">Interest Rate %</label><input type="number" step="0.1" value={mortgage.interest} onChange={e => setMortgage({...mortgage, interest: Number(e.target.value)})} className="w-full p-4 md:p-5 bg-slate-50 rounded-[1.5rem] outline-none font-bold text-indigo-600" /></div>
+                <div><label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">Annual Tax</label><input type="text" value={mortgage.annualTax} onChange={e => setMortgage({...mortgage, annualTax: Number(handleNumChange(e.target.value))})} className="w-full p-4 md:p-5 bg-slate-50 rounded-[1.5rem] outline-none font-bold text-rose-500" /></div>
               </div>
-              <div className="space-y-6">
-                <div><label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">Annual Insurance</label><input type="text" value={mortgage.annualInsurance} onChange={e => setMortgage({...mortgage, annualInsurance: Number(handleNumChange(e.target.value))})} className="w-full p-5 bg-slate-50 rounded-[1.5rem] outline-none font-bold text-amber-500" /></div>
-                <div className="p-5 bg-slate-50 rounded-[1.5rem] flex flex-col justify-center">
+              <div className="space-y-4 md:space-y-6">
+                <div><label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">Annual Insurance</label><input type="text" value={mortgage.annualInsurance} onChange={e => setMortgage({...mortgage, annualInsurance: Number(handleNumChange(e.target.value))})} className="w-full p-4 md:p-5 bg-slate-50 rounded-[1.5rem] outline-none font-bold text-amber-500" /></div>
+                <div className="p-4 md:p-5 bg-slate-50 rounded-[1.5rem]">
                   <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Loan Principal</p>
-                  <p className="text-xl font-black">{formatCurrency(mortgage.price - mortgage.downPayment)}</p>
+                  <p className="text-lg md:text-xl font-black">{formatCurrency(mortgage.price - mortgage.downPayment)}</p>
                 </div>
               </div>
-              <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-[3rem] p-10 text-white flex flex-col justify-center shadow-2xl relative overflow-hidden">
+              <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-[2.5rem] md:rounded-[3rem] p-8 md:p-10 text-white flex flex-col justify-center shadow-2xl">
                 <p className="text-indigo-200 text-[10px] font-black uppercase tracking-widest mb-2 relative z-10">Monthly PITI</p>
-                <p className="text-6xl font-black tracking-tighter relative z-10">{formatCurrency(mortgageResult.total)}</p>
+                <p className="text-4xl md:text-6xl font-black tracking-tighter relative z-10">{formatCurrency(mortgageResult.total)}</p>
                 <div className="mt-6 flex flex-col gap-1 text-[10px] font-bold opacity-60 relative z-10">
                     <span>P&I: {formatCurrency(mortgageResult.pAndI)}</span>
                     <span>T&I: {formatCurrency(mortgageResult.tax + mortgageResult.insurance)}</span>
@@ -215,33 +212,32 @@ function App() {
           </div>
         )}
 
-        {/* Remainder of Component Logic stays identical to keep layout consistency */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-12">
           {locations.map((loc, i) => (
-            <div key={i} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 group transition-all hover:shadow-lg">
-              <input value={loc} onChange={(e) => { const n = [...locations]; n[i] = e.target.value; setLocations(n); }} className="w-full font-black text-xl outline-none bg-transparent focus:text-indigo-600" />
-              <div className="mt-6 pt-6 border-t border-slate-50 flex justify-between items-end">
-                <div><p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Surplus</p><p className="text-3xl font-black tracking-tighter text-indigo-600">{formatCurrency(comparisonTotals[i].surplus)}</p></div>
+            <div key={i} className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-sm border border-slate-100 group transition-all">
+              <input value={loc} onChange={(e) => { const n = [...locations]; n[i] = e.target.value; setLocations(n); }} className="w-full font-black text-lg md:text-xl outline-none bg-transparent focus:text-indigo-600" />
+              <div className="mt-4 md:mt-6 pt-4 md:pt-6 border-t border-slate-50 flex justify-between items-end">
+                <div><p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Surplus</p><p className="text-2xl md:text-3xl font-black tracking-tighter text-indigo-600">{formatCurrency(comparisonTotals[i].surplus)}</p></div>
                 {locations.length > 1 && <button onClick={() => setLocations(locations.filter((_, idx) => idx !== i))} className="text-slate-100 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity pb-2">✕</button>}
               </div>
             </div>
           ))}
-          <button onClick={() => setLocations([...locations, `City ${locations.length + 1}`])} className="border-4 border-dashed border-slate-100 rounded-[2.5rem] p-8 text-slate-300 text-[10px] font-black uppercase tracking-widest hover:border-indigo-100 hover:text-indigo-300 transition-all">+ Comparison</button>
+          <button onClick={() => setLocations([...locations, `City ${locations.length + 1}`])} className="border-4 border-dashed border-slate-100 rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-8 text-slate-300 text-[10px] font-black uppercase tracking-widest hover:border-indigo-100 hover:text-indigo-300 transition-all">+ Comparison</button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12">
           <div className="lg:col-span-4">
-            <form onSubmit={handleSubmit} className="bg-white p-10 rounded-[3rem] shadow-xl space-y-6 sticky top-10 border border-slate-50">
+            <form onSubmit={handleSubmit} className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] shadow-xl space-y-6 sticky top-10 border border-slate-50">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-black text-xl tracking-tight">{editingId ? 'Edit Record' : 'New Entry'}</h3>
                 {editingId && <button type="button" onClick={() => { setEditingId(null); setForm({ name: '', amounts: locations.map(() => ''), type: form.type }); }} className="text-[10px] font-bold text-rose-500 uppercase">Cancel</button>}
               </div>
-              <div className="flex p-1.5 bg-slate-100 rounded-2xl">
+              <div className="flex p-1 bg-slate-100 rounded-2xl">
                 {(['income', 'expense'] as const).map(t => (
                   <button key={t} type="button" onClick={() => setForm({...form, type: t})} className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${form.type === t ? 'bg-white shadow-md text-slate-900' : 'text-slate-400'}`}>{t}</button>
                 ))}
               </div>
-              <input className="w-full p-5 bg-slate-50 rounded-[1.5rem] outline-none focus:ring-4 focus:ring-indigo-50 font-bold" placeholder="Description" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+              <input className="w-full p-4 bg-slate-50 rounded-[1.5rem] outline-none font-bold" placeholder="Description" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
               <div className="space-y-4">
                 {locations.map((loc, i) => (
                   <div key={i}>
@@ -254,10 +250,10 @@ function App() {
             </form>
           </div>
 
-          <div className="lg:col-span-8 space-y-12">
+          <div className="lg:col-span-8 space-y-8 md:space-y-12">
             {(['income', 'expense'] as const).map((type) => (
-              <section key={type} className="bg-white rounded-[3.5rem] shadow-sm overflow-hidden border border-slate-100">
-                <div className="px-10 py-6 bg-slate-50/50 border-b flex items-center">
+              <section key={type} className="bg-white rounded-[2rem] md:rounded-[3.5rem] shadow-sm overflow-hidden border border-slate-100">
+                <div className="hidden md:flex px-10 py-6 bg-slate-50/50 border-b items-center">
                   <span className="w-1/3 text-[10px] font-black uppercase tracking-widest text-slate-400">{type} Summary</span>
                   <div className="flex-1 grid grid-cols-2 md:grid-cols-3 gap-6 text-center">
                     {locations.map(loc => <span key={loc} className="text-[10px] font-black uppercase text-slate-300 truncate tracking-tight">{loc}</span>)}
@@ -266,22 +262,37 @@ function App() {
                 </div>
                 <div className="divide-y divide-slate-50">
                   {items.filter(i => i.type === type).map((item) => (
-                    <div key={item.id} className="px-10 py-8 flex items-center hover:bg-slate-50/50 transition-all group">
-                      <div className="w-1/3 flex items-center gap-4">
-                        <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => moveItem(item, 'up')} className="text-slate-200 hover:text-indigo-600 text-[10px] p-1">▲</button>
-                            <button onClick={() => moveItem(item, 'down')} className="text-slate-200 hover:text-indigo-600 text-[10px] p-1">▼</button>
+                    <div key={item.id} className="p-6 md:px-10 md:py-8 flex flex-col md:flex-row items-start md:items-center hover:bg-slate-50/50 transition-all group">
+                      {/* Name & Reorder */}
+                      <div className="w-full md:w-1/3 flex items-center justify-between md:justify-start gap-4 mb-4 md:mb-0">
+                        <div className="flex items-center gap-4">
+                            <div className="flex flex-col opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => moveItem(item, 'up')} className="text-slate-200 hover:text-indigo-600 text-[10px] p-1">▲</button>
+                                <button onClick={() => moveItem(item, 'down')} className="text-slate-200 hover:text-indigo-600 text-[10px] p-1">▼</button>
+                            </div>
+                            <span className="font-bold text-slate-800 text-lg md:text-base truncate">{item.name}</span>
                         </div>
-                        <span className="font-bold text-slate-800 truncate">{item.name}</span>
+                        {/* Mobile Actions */}
+                        <div className="flex md:hidden gap-2">
+                           <button onClick={() => { setEditingId(item.id); setForm({ name: item.name, amounts: item.amounts ? item.amounts.map(String) : [String(item.amount || '')], type: item.type }); }} className="p-2 bg-slate-100 rounded-full text-slate-400">✎</button>
+                           <button onClick={() => deleteDoc(doc(db, "budget", item.id))} className="p-2 bg-slate-100 rounded-full text-rose-300">✕</button>
+                        </div>
                       </div>
-                      <div className="flex-1 grid grid-cols-2 md:grid-cols-3 gap-6 text-center">
-                        {locations.map((_, lIdx) => (
-                          <span key={lIdx} className={`font-black text-sm ${lIdx === 0 ? 'text-slate-200' : 'text-slate-900'}`}>
-                            {formatCurrency(item.amounts ? (item.amounts[lIdx] ?? item.amounts[0]) : (item.amount || 0))}
-                          </span>
+
+                      {/* STACKED AMOUNTS ON MOBILE, GRID ON DESKTOP */}
+                      <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
+                        {locations.map((loc, lIdx) => (
+                          <div key={lIdx} className="flex justify-between md:justify-center items-center bg-slate-50 md:bg-transparent p-3 md:p-0 rounded-xl">
+                            <span className="md:hidden text-[9px] font-black uppercase text-slate-400 tracking-widest">{loc}</span>
+                            <span className={`font-black text-sm ${lIdx === 0 ? 'text-indigo-400 md:text-slate-200' : 'text-slate-900'}`}>
+                                {formatCurrency(item.amounts ? (item.amounts[lIdx] ?? item.amounts[0]) : (item.amount || 0))}
+                            </span>
+                          </div>
                         ))}
                       </div>
-                      <div className="w-20 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+
+                      {/* Desktop Actions */}
+                      <div className="hidden md:flex w-20 justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={() => { setEditingId(item.id); setForm({ name: item.name, amounts: item.amounts ? item.amounts.map(String) : [String(item.amount || '')], type: item.type }); }} className="text-slate-300 hover:text-indigo-600">✎</button>
                         <button onClick={() => deleteDoc(doc(db, "budget", item.id))} className="text-slate-300 hover:text-rose-500">✕</button>
                       </div>
