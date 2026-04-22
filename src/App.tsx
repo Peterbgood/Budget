@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { db } from "./firebase"; 
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
@@ -38,6 +38,9 @@ function App() {
   const [pin, setPin] = useState("");
   const [error, setError] = useState(false);
   const [showMortgage, setShowMortgage] = useState(false);
+  
+  // Ref for anchoring to the form
+  const formRef = useRef<HTMLFormElement>(null);
 
   const [mortgage, setMortgage] = useState({
     price: 450000,
@@ -84,6 +87,13 @@ function App() {
     });
     return () => unsubscribe();
   }, []);
+
+  // Effect to scroll to form when editing
+  useEffect(() => {
+    if (editingId && formRef.current) {
+      formRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [editingId]);
 
   const comparisonTotals = useMemo(() => {
     return locations.map((_, locIdx) => {
@@ -145,6 +155,12 @@ function App() {
     const targetItem = list[targetIdx];
     await updateDoc(doc(db, "budget", item.id), { order: targetItem.order });
     await updateDoc(doc(db, "budget", targetItem.id), { order: item.order });
+  };
+
+  const hasDifferentValues = (item: BudgetItem) => {
+    if (!item.amounts || item.amounts.length < 2) return false;
+    const firstVal = item.amounts[0];
+    return item.amounts.some(v => v !== firstVal);
   };
 
   if (isLocked) {
@@ -256,11 +272,6 @@ function App() {
                   </div>
                   {locations.length > 1 && <button onClick={() => setLocations(locations.filter((_, idx) => idx !== i))} className="text-slate-100 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity pb-2">✕</button>}
                 </div>
-
-                <div className="bg-slate-50 p-4 rounded-2xl">
-                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">[mortgage]</p>
-                    <p className="text-sm font-black text-black">{formatCurrency(comparisonTotals[i].logMortgage)}</p>
-                </div>
               </div>
             </div>
           ))}
@@ -269,7 +280,7 @@ function App() {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12">
           <div className="lg:col-span-4">
-            <form onSubmit={handleSubmit} className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] shadow-xl space-y-6 sticky top-10 border border-slate-50">
+            <form ref={formRef} onSubmit={handleSubmit} className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] shadow-xl space-y-6 sticky top-10 border border-slate-50">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-black text-xl tracking-tight">{editingId ? 'Edit Record' : 'New Entry'}</h3>
                 {editingId && <button type="button" onClick={() => { setEditingId(null); setForm({ name: '', amounts: locations.map(() => ''), type: form.type }); }} className="text-[10px] font-bold text-rose-500 uppercase">Cancel</button>}
@@ -297,7 +308,7 @@ function App() {
               <section key={type} className="bg-white rounded-[2rem] md:rounded-[3.5rem] shadow-sm overflow-hidden border border-slate-100">
                 <div className="hidden md:flex px-10 py-6 bg-slate-50/50 border-b items-center">
                   <span className="w-1/3 text-[10px] font-black uppercase tracking-widest text-slate-400">{type} Summary</span>
-                  <div className="flex-1 grid grid-cols-2 md:grid-cols-3 gap-6 text-center">
+                  <div className="flex-1 grid gap-6 text-center" style={{ gridTemplateColumns: `repeat(${locations.length}, minmax(0, 1fr))` }}>
                     {locations.map(loc => <span key={loc} className="text-[10px] font-black uppercase text-slate-300 truncate tracking-tight">{loc}</span>)}
                   </div>
                   <div className="w-20" />
@@ -311,18 +322,18 @@ function App() {
                                 <button onClick={() => moveItem(item, 'up')} className="text-slate-200 hover:text-indigo-600 text-[10px] p-1">▲</button>
                                 <button onClick={() => moveItem(item, 'down')} className="text-slate-200 hover:text-indigo-600 text-[10px] p-1">▼</button>
                             </div>
-                            <span className="font-bold text-slate-800 text-lg md:text-base truncate">{item.name}</span>
+                            <span className={`font-bold text-lg md:text-base truncate ${hasDifferentValues(item) ? 'text-indigo-600' : 'text-slate-800'}`}>{item.name}</span>
                         </div>
                         <div className="flex md:hidden gap-2">
-                           <button onClick={() => { setEditingId(item.id); setForm({ name: item.name, amounts: item.amounts ? item.amounts.map(String) : [String(item.amount || '')], type: item.type }); }} className="p-2 bg-slate-100 rounded-full text-slate-400">✎</button>
-                           <button onClick={() => deleteDoc(doc(db, "budget", item.id))} className="p-2 bg-slate-100 rounded-full text-rose-300">✕</button>
+                            <button onClick={() => { setEditingId(item.id); setForm({ name: item.name, amounts: item.amounts ? item.amounts.map(String) : [String(item.amount || '')], type: item.type }); }} className="p-2 bg-slate-100 rounded-full text-slate-400">✎</button>
+                            <button onClick={() => deleteDoc(doc(db, "budget", item.id))} className="p-2 bg-slate-100 rounded-full text-rose-300">✕</button>
                         </div>
                       </div>
-                      <div className="flex-1 w-full grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
+                      <div className="flex-1 w-full flex flex-wrap md:grid gap-3 md:gap-6 mt-2 md:mt-0" style={{ gridTemplateColumns: `repeat(${locations.length}, minmax(0, 1fr))` }}>
                         {locations.map((loc, lIdx) => (
-                          <div key={lIdx} className="flex justify-between md:justify-center items-center bg-slate-50 md:bg-transparent p-3 md:p-0 rounded-xl">
-                            <span className="md:hidden text-[9px] font-black uppercase text-slate-400 tracking-widest">{loc}</span>
-                            <span className={`font-black text-sm ${lIdx === 0 ? 'text-indigo-400 md:text-slate-400' : 'text-black'}`}>
+                          <div key={lIdx} className="flex flex-row md:flex-col justify-between md:justify-center items-center bg-slate-50 md:bg-transparent px-4 py-2 md:p-0 rounded-xl min-w-[140px] md:min-w-0 flex-1">
+                            <span className="md:hidden text-[9px] font-black uppercase text-slate-400 tracking-widest mr-2">{loc}</span>
+                            <span className={`font-black text-sm whitespace-nowrap ${lIdx === 0 ? 'text-indigo-400 md:text-slate-400' : (hasDifferentValues(item) ? 'text-indigo-600' : 'text-black')}`}>
                                 {formatCurrency(item.amounts ? (item.amounts[lIdx] ?? item.amounts[0]) : (item.amount || 0))}
                             </span>
                           </div>
