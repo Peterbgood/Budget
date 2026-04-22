@@ -20,8 +20,6 @@ interface BudgetItem {
 
 const TAX_RATE = 0.7253; 
 const CORRECT_PIN = "3270";
-
-// FIXED LOCATIONS - This ensures consistency across all browsers
 const FIXED_LOCATIONS = ['Knoxville', 'Clearwater', 'Charlotte', 'Wesley Chapel'];
 
 function formatCurrency(value: number) {
@@ -30,16 +28,14 @@ function formatCurrency(value: number) {
 
 function App() {
   const [items, setItems] = useState<BudgetItem[]>([]);
-  
-  // FIXED: Removed localStorage dependency
   const [locations] = useState<string[]>(FIXED_LOCATIONS);
-  
   const [form, setForm] = useState({ name: '', amounts: FIXED_LOCATIONS.map(() => ''), type: 'expense' as ItemType });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isLocked, setIsLocked] = useState(true);
   const [pin, setPin] = useState("");
   const [error, setError] = useState(false);
   const [showMortgage, setShowMortgage] = useState(false);
+  const [showForm, setShowForm] = useState(false); // NEW: Toggle state for the form
   
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -51,8 +47,6 @@ function App() {
     annualTax: 2205,
     annualInsurance: 1980 
   });
-
-  // REMOVED: localStorage.setItem effect as locations are now constant
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -75,7 +69,6 @@ function App() {
     return { pAndI, tax, insurance, total: pAndI + tax + insurance };
   }, [mortgage]);
 
-  // FIXED: Simplified form sync
   useEffect(() => {
     setForm(f => ({ ...f, amounts: locations.map((_, i) => f.amounts[i] || '') }));
   }, [locations]);
@@ -88,9 +81,11 @@ function App() {
     return () => unsubscribe();
   }, []);
 
+  // Open form automatically when editing
   useEffect(() => {
-    if (editingId && formRef.current) {
-      formRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (editingId) {
+        setShowForm(true);
+        setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
     }
   }, [editingId]);
 
@@ -98,27 +93,11 @@ function App() {
     return locations.map((_, locIdx) => {
       const calculateTotal = (type: ItemType) => items
         .filter(i => i.type === type)
-        .reduce((sum, i) => {
-          const val = i.amounts ? (i.amounts[locIdx] ?? i.amounts[0]) : (i.amount || 0);
-          return sum + val;
-        }, 0);
+        .reduce((sum, i) => sum + (i.amounts ? (i.amounts[locIdx] ?? i.amounts[0]) : (i.amount || 0)), 0);
       
-      const logMortgageTotal = items
-        .filter(i => {
-            const name = i.name.toLowerCase();
-            return name === 'mortgage p&i' || 
-                   name === 'mortgage taxes' || 
-                   name === 'mortgage insurance' ||
-                   (name.includes('mortgage') && (name.includes('p&i') || name.includes('tax') || name.includes('ins')));
-        })
-        .reduce((sum, i) => {
-            const val = i.amounts ? (i.amounts[locIdx] ?? i.amounts[0]) : (i.amount || 0);
-            return sum + val;
-        }, 0);
-
       const netIncome = (calculateTotal('income') * TAX_RATE) / 12;
       const expenses = calculateTotal('expense');
-      return { netIncome, expenses, surplus: netIncome - expenses, logMortgage: logMortgageTotal };
+      return { netIncome, expenses, surplus: netIncome - expenses };
     });
   }, [items, locations]);
 
@@ -144,6 +123,7 @@ function App() {
       await addDoc(collection(db, "budget"), { ...payload, order: maxOrder + 1, notes: '' });
     }
     setForm({ name: '', amounts: locations.map(() => ''), type: form.type });
+    setShowForm(false); // Hide form after save
   };
 
   const moveItem = async (item: BudgetItem, direction: 'up' | 'down') => {
@@ -156,46 +136,40 @@ function App() {
     await updateDoc(doc(db, "budget", targetItem.id), { order: item.order });
   };
 
-  const hasDifferentValues = (item: BudgetItem) => {
-    if (!item.amounts || item.amounts.length < 2) return false;
-    const firstVal = item.amounts[0];
-    return item.amounts.some(v => v !== firstVal);
-  };
-
   if (isLocked) {
     return (
-      <div className="fixed inset-0 bg-white flex flex-col items-center justify-center p-6 z-50">
-        <div className={`w-full max-w-[320px] flex flex-col items-center ${error ? 'animate-shake' : ''}`}>
-          <div className="mb-10 text-center">
-            <div className="w-20 h-20 bg-slate-900 rounded-[2rem] flex items-center justify-center mb-6 mx-auto shadow-2xl">
-              <span className="text-white text-3xl font-black italic">V</span>
+        <div className="fixed inset-0 bg-white flex flex-col items-center justify-center p-6 z-50">
+          <div className={`w-full max-w-[320px] flex flex-col items-center ${error ? 'animate-shake' : ''}`}>
+            <div className="mb-10 text-center">
+              <div className="w-20 h-20 bg-slate-900 rounded-[2rem] flex items-center justify-center mb-6 mx-auto shadow-2xl">
+                <span className="text-white text-3xl font-black italic">V</span>
+              </div>
+              <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Vault Locked</h2>
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Vault Locked</h2>
+            <div className="flex gap-6 mb-16">
+              {[0, 1, 2, 3].map(i => (
+                <div key={i} className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ${pin.length > i ? 'bg-slate-900 border-slate-900 scale-125 shadow-lg' : 'border-slate-200'}`} />
+              ))}
+            </div>
+            <div className="grid grid-cols-3 gap-x-8 gap-y-5">
+              {["1", "2", "3", "4", "5", "6", "7", "8", "9", "Clear", "0", "Back"].map((btn, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    if (btn === "Back") setPin(p => p.slice(0, -1));
+                    else if (btn === "Clear") setPin("");
+                    else if (btn !== "") setPin(p => p + btn);
+                  }}
+                  className={`w-16 h-16 flex flex-col items-center justify-center rounded-full transition-all active:scale-90 ${btn === "Clear" || btn === "Back" ? "bg-transparent" : "bg-slate-100 hover:bg-slate-200"}`}
+                >
+                  <span className={`text-2xl ${btn === "Clear" || btn === "Back" ? "text-[10px] font-black uppercase tracking-widest text-slate-400" : "font-semibold"}`}>{btn}</span>
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex gap-6 mb-16">
-            {[0, 1, 2, 3].map(i => (
-              <div key={i} className={`w-4 h-4 rounded-full border-2 transition-all duration-300 ${pin.length > i ? 'bg-slate-900 border-slate-900 scale-125 shadow-lg' : 'border-slate-200'}`} />
-            ))}
-          </div>
-          <div className="grid grid-cols-3 gap-x-8 gap-y-5">
-            {["1", "2", "3", "4", "5", "6", "7", "8", "9", "Clear", "0", "Back"].map((btn, i) => (
-              <button
-                key={i}
-                onClick={() => {
-                  if (btn === "Back") setPin(p => p.slice(0, -1));
-                  else if (btn === "Clear") setPin("");
-                  else if (btn !== "") setPin(p => p + btn);
-                }}
-                className={`w-16 h-16 flex flex-col items-center justify-center rounded-full transition-all active:scale-90 ${btn === "Clear" || btn === "Back" ? "bg-transparent" : "bg-slate-100 hover:bg-slate-200"}`}
-              >
-                <span className={`text-2xl ${btn === "Clear" || btn === "Back" ? "text-[10px] font-black uppercase tracking-widest text-slate-400" : "font-semibold"}`}>{btn}</span>
-              </button>
-            ))}
-          </div>
+          <style>{`@keyframes shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-10px); } 40% { transform: translateX(10px); } 60% { transform: translateX(-10px); } 80% { transform: translateX(10px); } } .animate-shake { animation: shake 0.4s ease-in-out; }`}</style>
         </div>
-        <style>{`@keyframes shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-10px); } 40% { transform: translateX(10px); } 60% { transform: translateX(-10px); } 80% { transform: translateX(10px); } } .animate-shake { animation: shake 0.4s ease-in-out; }`}</style>
-      </div>
-    );
+      );
   }
 
   return (
@@ -211,50 +185,11 @@ function App() {
           </div>
         </header>
 
-        {showMortgage && (
-          <div className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] shadow-xl border border-slate-100 mb-12 animate-in fade-in zoom-in-95 duration-500">
-             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-10">
-              <div className="space-y-4 md:space-y-6">
-                <div><label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">Home Price</label><input type="text" value={mortgage.price} onChange={e => setMortgage({...mortgage, price: Number(handleNumChange(e.target.value))})} className="w-full p-4 md:p-5 bg-slate-50 rounded-[1.5rem] outline-none font-bold" /></div>
-                <div><label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">Down Payment</label><input type="text" value={mortgage.downPayment} onChange={e => setMortgage({...mortgage, downPayment: Number(handleNumChange(e.target.value))})} className="w-full p-4 md:p-5 bg-slate-50 rounded-[1.5rem] outline-none font-bold text-indigo-500" /></div>
-              </div>
-              <div className="space-y-4 md:space-y-6">
-                <div><label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">Interest Rate %</label><input type="number" step="0.1" value={mortgage.interest} onChange={e => setMortgage({...mortgage, interest: Number(e.target.value)})} className="w-full p-4 md:p-5 bg-slate-50 rounded-[1.5rem] outline-none font-bold text-indigo-600" /></div>
-                <div>
-                  <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">Annual Tax</label>
-                  <input type="text" value={mortgage.annualTax} onChange={e => setMortgage({...mortgage, annualTax: Number(handleNumChange(e.target.value))})} className="w-full p-4 md:p-5 bg-slate-50 rounded-[1.5rem] outline-none font-bold text-rose-500" />
-                  <p className="mt-1 ml-2 text-[9px] font-bold text-rose-400 uppercase tracking-tighter">~ {formatCurrency(mortgageResult.tax)} / month</p>
-                </div>
-              </div>
-              <div className="space-y-4 md:space-y-6">
-                <div>
-                  <label className="text-[10px] font-black text-slate-300 uppercase tracking-widest block mb-2">Annual Insurance</label>
-                  <input type="text" value={mortgage.annualInsurance} onChange={e => setMortgage({...mortgage, annualInsurance: Number(handleNumChange(e.target.value))})} className="w-full p-4 md:p-5 bg-slate-50 rounded-[1.5rem] outline-none font-bold text-amber-500" />
-                  <p className="mt-1 ml-2 text-[9px] font-bold text-amber-500 uppercase tracking-tighter">~ {formatCurrency(mortgageResult.insurance)} / month</p>
-                </div>
-                <div className="p-4 md:p-5 bg-slate-50 rounded-[1.5rem]">
-                  <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-1">Loan Principal</p>
-                  <p className="text-lg md:text-xl font-black">{formatCurrency(mortgage.price - mortgage.downPayment)}</p>
-                </div>
-              </div>
-              <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 rounded-[2.5rem] md:rounded-[3rem] p-8 md:p-10 text-white flex flex-col justify-center shadow-2xl">
-                <p className="text-indigo-200 text-[10px] font-black uppercase tracking-widest mb-2 relative z-10">Calc Estimate (PITI)</p>
-                <p className="text-4xl md:text-6xl font-black tracking-tighter relative z-10">{formatCurrency(mortgageResult.total)}</p>
-                <div className="mt-6 flex flex-col gap-1 text-[10px] font-bold opacity-60 relative z-10">
-                    <span>P&I: {formatCurrency(mortgageResult.pAndI)}</span>
-                    <span>T&I: {formatCurrency(mortgageResult.tax + mortgageResult.insurance)}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
+        {/* Comparison Cards Row */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-12">
           {locations.map((loc, i) => (
-            <div key={i} className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-sm border border-slate-100 group transition-all">
-              {/* FIXED: Removed input editability to keep locations constant */}
+            <div key={i} className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-sm border border-slate-100 transition-all">
               <p className="w-full font-black text-lg md:text-xl text-slate-800 mb-6">{loc}</p>
-              
               <div className="space-y-5">
                 <div>
                   <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Total Net Income</p>
@@ -264,45 +199,63 @@ function App() {
                   <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Total Expenses</p>
                   <p className="text-lg font-bold text-rose-500">{formatCurrency(comparisonTotals[i].expenses)}</p>
                 </div>
-                
-                <div className="pt-5 border-t border-slate-50 flex justify-between items-end">
-                  <div>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Net Surplus</p>
-                    <p className="text-2xl md:text-3xl font-black tracking-tighter text-indigo-600">{formatCurrency(comparisonTotals[i].surplus)}</p>
-                  </div>
+                <div className="pt-5 border-t border-slate-50">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Net Surplus</p>
+                  <p className="text-2xl md:text-3xl font-black tracking-tighter text-indigo-600">{formatCurrency(comparisonTotals[i].surplus)}</p>
                 </div>
               </div>
             </div>
           ))}
-          {/* REMOVED: "+ Comparison" button to maintain fixed city list */}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12">
-          <div className="lg:col-span-4">
-            <form ref={formRef} onSubmit={handleSubmit} className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] shadow-xl space-y-6 sticky top-10 border border-slate-50">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-black text-xl tracking-tight">{editingId ? 'Edit Record' : 'New Entry'}</h3>
-                {editingId && <button type="button" onClick={() => { setEditingId(null); setForm({ name: '', amounts: locations.map(() => ''), type: form.type }); }} className="text-[10px] font-bold text-rose-500 uppercase">Cancel</button>}
-              </div>
-              <div className="flex p-1 bg-slate-100 rounded-2xl">
-                {(['income', 'expense'] as const).map(t => (
-                  <button key={t} type="button" onClick={() => setForm({...form, type: t})} className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${form.type === t ? 'bg-white shadow-md text-slate-900' : 'text-slate-400'}`}>{t}</button>
-                ))}
-              </div>
-              <input className="w-full p-4 bg-slate-50 rounded-[1.5rem] outline-none font-bold" placeholder="Description" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
-              <div className="space-y-4">
-                {locations.map((loc, i) => (
-                  <div key={i}>
-                    <label className="text-[9px] font-black text-slate-300 uppercase tracking-widest ml-3 mb-1 block">{loc} Amount</label>
-                    <input type="text" className="w-full p-4 bg-slate-50 rounded-[1.25rem] outline-none font-bold" placeholder="0" value={form.amounts[i]} onChange={e => { const n = [...form.amounts]; n[i] = handleNumChange(e.target.value); setForm({...form, amounts: n}); }} />
-                  </div>
-                ))}
-              </div>
-              <button className="w-full bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest py-5 rounded-[1.5rem] shadow-2xl hover:bg-indigo-600 transition-all">{editingId ? 'Update Record' : 'Add to Vault'}</button>
-            </form>
-          </div>
+        {/* NEW: Centered Add Button */}
+        <div className="flex justify-center mb-12">
+            {!showForm ? (
+                <button 
+                    onClick={() => setShowForm(true)}
+                    className="bg-slate-900 text-white px-12 py-5 rounded-[2rem] font-black text-[12px] uppercase tracking-widest shadow-2xl hover:scale-105 hover:bg-indigo-600 transition-all"
+                >
+                    + Add New Entry
+                </button>
+            ) : (
+                <button 
+                    onClick={() => { setShowForm(false); setEditingId(null); }}
+                    className="text-slate-400 font-bold text-[10px] uppercase tracking-widest hover:text-rose-500 transition-all"
+                >
+                    Close Form
+                </button>
+            )}
+        </div>
 
-          <div className="lg:col-span-8 space-y-8 md:space-y-12">
+        <div className="flex flex-col gap-12">
+          {/* Conditional Form Overlay */}
+          {showForm && (
+            <div className="w-full max-w-2xl mx-auto animate-in fade-in slide-in-from-top-4 duration-300">
+                <form ref={formRef} onSubmit={handleSubmit} className="bg-white p-6 md:p-10 rounded-[2.5rem] md:rounded-[3rem] shadow-xl space-y-6 border border-slate-50">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="font-black text-xl tracking-tight">{editingId ? 'Edit Record' : 'New Entry'}</h3>
+                    </div>
+                    <div className="flex p-1 bg-slate-100 rounded-2xl">
+                        {(['income', 'expense'] as const).map(t => (
+                        <button key={t} type="button" onClick={() => setForm({...form, type: t})} className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${form.type === t ? 'bg-white shadow-md text-slate-900' : 'text-slate-400'}`}>{t}</button>
+                        ))}
+                    </div>
+                    <input className="w-full p-4 bg-slate-50 rounded-[1.5rem] outline-none font-bold" placeholder="Description" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {locations.map((loc, i) => (
+                        <div key={i}>
+                            <label className="text-[9px] font-black text-slate-300 uppercase tracking-widest ml-3 mb-1 block">{loc}</label>
+                            <input type="text" className="w-full p-4 bg-slate-50 rounded-[1.25rem] outline-none font-bold" placeholder="0" value={form.amounts[i]} onChange={e => { const n = [...form.amounts]; n[i] = handleNumChange(e.target.value); setForm({...form, amounts: n}); }} />
+                        </div>
+                        ))}
+                    </div>
+                    <button className="w-full bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest py-5 rounded-[1.5rem] shadow-2xl hover:bg-indigo-600 transition-all">{editingId ? 'Update Record' : 'Add to Vault'}</button>
+                </form>
+            </div>
+          )}
+
+          {/* Centered Line Items */}
+          <div className="w-full max-w-5xl mx-auto space-y-12">
             {(['income', 'expense'] as const).map((type) => (
               <section key={type} className="bg-white rounded-[2rem] md:rounded-[3.5rem] shadow-sm overflow-hidden border border-slate-100">
                 <div className="hidden md:flex px-10 py-6 bg-slate-50/50 border-b items-center">
@@ -321,18 +274,14 @@ function App() {
                                 <button onClick={() => moveItem(item, 'up')} className="text-slate-200 hover:text-indigo-600 text-[10px] p-1">▲</button>
                                 <button onClick={() => moveItem(item, 'down')} className="text-slate-200 hover:text-indigo-600 text-[10px] p-1">▼</button>
                             </div>
-                            <span className={`font-bold text-lg md:text-base truncate ${hasDifferentValues(item) ? 'text-indigo-600' : 'text-slate-800'}`}>{item.name}</span>
-                        </div>
-                        <div className="flex md:hidden gap-2">
-                            <button onClick={() => { setEditingId(item.id); setForm({ name: item.name, amounts: item.amounts ? item.amounts.map(String) : [String(item.amount || '')], type: item.type }); }} className="p-2 bg-slate-100 rounded-full text-slate-400">✎</button>
-                            <button onClick={() => deleteDoc(doc(db, "budget", item.id))} className="p-2 bg-slate-100 rounded-full text-rose-300">✕</button>
+                            <span className={`font-bold text-lg md:text-base truncate ${item.amounts?.some(v => v !== item.amounts[0]) ? 'text-indigo-600' : 'text-slate-800'}`}>{item.name}</span>
                         </div>
                       </div>
                       <div className="flex-1 w-full flex flex-wrap md:grid gap-3 md:gap-6 mt-2 md:mt-0" style={{ gridTemplateColumns: `repeat(${locations.length}, minmax(0, 1fr))` }}>
                         {locations.map((loc, lIdx) => (
-                          <div key={lIdx} className="flex flex-row md:flex-col justify-between md:justify-center items-center bg-slate-50 md:bg-transparent px-4 py-2 md:p-0 rounded-xl min-w-[140px] md:min-w-0 flex-1">
+                          <div key={lIdx} className="flex flex-row md:flex-col justify-between md:justify-center items-center bg-slate-50 md:bg-transparent px-4 py-2 md:p-0 rounded-xl flex-1">
                             <span className="md:hidden text-[9px] font-black uppercase text-slate-400 tracking-widest mr-2">{loc}</span>
-                            <span className={`font-black text-sm whitespace-nowrap ${lIdx === 0 ? 'text-indigo-400 md:text-slate-400' : (hasDifferentValues(item) ? 'text-indigo-600' : 'text-black')}`}>
+                            <span className={`font-black text-sm whitespace-nowrap ${lIdx === 0 ? 'text-slate-400' : 'text-black'}`}>
                                 {formatCurrency(item.amounts ? (item.amounts[lIdx] ?? item.amounts[0]) : (item.amount || 0))}
                             </span>
                           </div>
