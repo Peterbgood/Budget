@@ -21,25 +21,26 @@ interface BudgetItem {
 const TAX_RATE = 0.7253; 
 const CORRECT_PIN = "3270";
 
+// FIXED LOCATIONS - This ensures consistency across all browsers
+const FIXED_LOCATIONS = ['Knoxville', 'Clearwater', 'Charlotte', 'Wesley Chapel'];
+
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
 }
 
 function App() {
   const [items, setItems] = useState<BudgetItem[]>([]);
-  const [locations, setLocations] = useState<string[]>(() => {
-    const saved = localStorage.getItem('budget_locations');
-    return saved ? JSON.parse(saved) : ['Current', 'Knoxville'];
-  });
   
-  const [form, setForm] = useState({ name: '', amounts: [''] as string[], type: 'expense' as ItemType });
+  // FIXED: Removed localStorage dependency
+  const [locations] = useState<string[]>(FIXED_LOCATIONS);
+  
+  const [form, setForm] = useState({ name: '', amounts: FIXED_LOCATIONS.map(() => ''), type: 'expense' as ItemType });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isLocked, setIsLocked] = useState(true);
   const [pin, setPin] = useState("");
   const [error, setError] = useState(false);
   const [showMortgage, setShowMortgage] = useState(false);
   
-  // Ref for anchoring to the form
   const formRef = useRef<HTMLFormElement>(null);
 
   const [mortgage, setMortgage] = useState({
@@ -51,9 +52,7 @@ function App() {
     annualInsurance: 1980 
   });
 
-  useEffect(() => {
-    localStorage.setItem('budget_locations', JSON.stringify(locations));
-  }, [locations]);
+  // REMOVED: localStorage.setItem effect as locations are now constant
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -76,9 +75,10 @@ function App() {
     return { pAndI, tax, insurance, total: pAndI + tax + insurance };
   }, [mortgage]);
 
+  // FIXED: Simplified form sync
   useEffect(() => {
     setForm(f => ({ ...f, amounts: locations.map((_, i) => f.amounts[i] || '') }));
-  }, [locations.length]);
+  }, [locations]);
 
   useEffect(() => {
     const q = query(collection(db, "budget"), orderBy("order", "asc"));
@@ -88,7 +88,6 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  // Effect to scroll to form when editing
   useEffect(() => {
     if (editingId && formRef.current) {
       formRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -253,7 +252,8 @@ function App() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-12">
           {locations.map((loc, i) => (
             <div key={i} className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-sm border border-slate-100 group transition-all">
-              <input value={loc} onChange={(e) => { const n = [...locations]; n[i] = e.target.value; setLocations(n); }} className="w-full font-black text-lg md:text-xl outline-none bg-transparent focus:text-indigo-600 mb-6" />
+              {/* FIXED: Removed input editability to keep locations constant */}
+              <p className="w-full font-black text-lg md:text-xl text-slate-800 mb-6">{loc}</p>
               
               <div className="space-y-5">
                 <div>
@@ -270,12 +270,11 @@ function App() {
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Net Surplus</p>
                     <p className="text-2xl md:text-3xl font-black tracking-tighter text-indigo-600">{formatCurrency(comparisonTotals[i].surplus)}</p>
                   </div>
-                  {locations.length > 1 && <button onClick={() => setLocations(locations.filter((_, idx) => idx !== i))} className="text-slate-100 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity pb-2">✕</button>}
                 </div>
               </div>
             </div>
           ))}
-          <button onClick={() => setLocations([...locations, `City ${locations.length + 1}`])} className="border-4 border-dashed border-slate-100 rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-8 text-slate-300 text-[10px] font-black uppercase tracking-widest hover:border-indigo-100 hover:text-indigo-300 transition-all">+ Comparison</button>
+          {/* REMOVED: "+ Comparison" button to maintain fixed city list */}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12">
