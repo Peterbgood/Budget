@@ -2,15 +2,14 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAe1_5s7ujsaVC9_8tcaVbIgn78-dCpViU", // Note: Usually keep this in an .env file!
-  authDomain: "quick-crud-3dea0.firebaseapp.com",
-  projectId: "quick-crud-3dea0",
-  storageBucket: "quick-crud-3dea0.firebasestorage.app",
-  messagingSenderId: "154946577128",
-  appId: "1:154946577128:web:f67ea342c6aca587bf5f5d",
-  measurementId: "G-S4GG97PQ72"
+  apiKey: "AIzaSyC09JG_P24MU4qj7H36HPtil-0J60xDf7E",
+  authDomain: "ledger-979ce.firebaseapp.com",
+  projectId: "ledger-979ce",
+  storageBucket: "ledger-979ce.firebasestorage.app",
+  messagingSenderId: "598972154253",
+  appId: "1:598972154253:web:dd1d8472cef12c4f2dbdc4",
+  measurementId: "G-EZ3PTWHVYQ"
 };
-
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
