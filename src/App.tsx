@@ -15,7 +15,7 @@ interface BudgetItem {
 }
 
 const CORRECT_PIN = "3270";
-const FIXED_LOCATIONS = ['Knoxville', 'Clearwater', 'Charlotte', 'Petesville'];
+const FIXED_LOCATIONS = ['Tennessee', 'Florida'];
 
 // Helper to assign icons based on keywords
 const getIcon = (name: string) => {
@@ -30,7 +30,7 @@ const getIcon = (name: string) => {
   if (n.includes('take')) return '🍕';
   if (n.includes('insurance')) return '🛟';
   if (n.includes('philo') || n.includes('netflix') || n.includes('hbo')) return '📺';
-   if (n.includes('internet')) return '🛜';
+  if (n.includes('internet')) return '🛜';
   if (n.includes('wife') || n.includes('husband') || n.includes('salary') || n.includes('paycheck')) return '💰';
   if (n.includes('tucker') || n.includes('odie') || n.includes('pet')) return '🐾';
   return '📦'; // Default icon
@@ -230,7 +230,7 @@ function App() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4 md:gap-6 mb-12">
           {locations.map((loc, i) => (
             <div key={i} className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-sm border border-slate-100">
               <p className="w-full font-black text-lg md:text-xl text-slate-800 mb-6">{loc}</p>
@@ -293,7 +293,7 @@ function App() {
                                   {isEditing ? (
                                     <input className="bg-slate-50 border-b-2 border-indigo-400 font-bold outline-none px-2 py-1 w-full" value={inlineEditData.name} onChange={e => setInlineEditData({...inlineEditData, name: e.target.value})} />
                                   ) : (
-                                    <span className={`font-bold text-lg md:text-base truncate ${item.amounts?.some(v => v !== item.amounts[0]) ? 'text-indigo-600' : 'text-slate-800'}`}>{item.name}</span>
+                                    <span className={`font-bold text-lg md:text-truncate ${item.amounts?.some(v => v !== item.amounts[0]) ? 'text-indigo-600' : 'text-slate-800'}`}>{item.name}</span>
                                   )}
                               </div>
                           </div>
@@ -336,6 +336,10 @@ function App() {
       </div>
     </div>
   );
+}
+
+function NumChange(val: string) {
+  return val === '' ? '' : val.replace(/[^0-9.]/g, '');
 }
 
 export default App;
